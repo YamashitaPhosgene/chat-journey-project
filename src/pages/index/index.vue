@@ -192,9 +192,11 @@ export default {
         opacity: 0.95;
 
         .logo-icon {
-          width: 24px;
-          height: 24px;
-          margin-right: 10px;
+          width: 30px;
+          height: 30px;
+          margin-right: 3%;
+          margin-bottom: -3%;
+          vertical-align: middle;
         }
       }
     }
