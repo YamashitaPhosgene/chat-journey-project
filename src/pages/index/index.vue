@@ -228,7 +228,12 @@
     <!-- 灵感拼图悬浮按钮 -->
     <view
       class="jigsaw-fab"
-      v-if="!showWelcome && itinerary.length"
+      v-if="
+        !showWelcome &&
+        (jigsawType === 'location' ||
+          jigsawType === 'budget' ||
+          (jigsawType === 'itinerary' && itinerary.length))
+      "
       @tap="toggleJigsaw"
     >
       <image src="/static/icons/star.png" mode="aspectFit"></image>
@@ -239,64 +244,242 @@
       <view class="jigsaw-content">
         <view class="jigsaw-header">
           <view class="jigsaw-title">灵感拼图</view>
-          <view class="jigsaw-subtitle">预览攻略</view>
+          <view class="jigsaw-subtitle">
+            <template v-if="jigsawType === 'location'">猜你想去</template>
+            <template v-else-if="jigsawType === 'budget'">预算分配</template>
+            <template v-else>预览攻略</template>
+          </view>
         </view>
         <scroll-view scroll-y class="timeline-container">
-          <view class="timeline">
-            <view v-for="day in itinerary" :key="day.date">
-              <view class="timeline-day">
-                <text class="date">{{ day.date }}</text>
-                <text class="weather"
-                  >{{ day.weatherIcon }} {{ day.temperature }}</text
-                >
-              </view>
-              <view class="timeline-events">
-                <view
-                  class="event-item"
-                  v-for="(event, index) in day.events"
-                  :key="index"
-                >
-                  <view class="event-time">
-                    <view
-                      class="time-main"
-                      v-html="formatTime(event.time).main"
-                    ></view>
-                    <view
-                      class="time-range"
-                      v-if="formatTime(event.time).range"
-                      v-html="formatTime(event.time).range"
-                    ></view>
-                    <text class="time-sub" v-if="event.subtext">{{
-                      event.subtext
-                    }}</text>
+          <template v-if="jigsawType === 'location'">
+            <view
+              v-for="(item, idx) in locationJigsawData"
+              :key="idx"
+              style="margin-bottom: 18px"
+            >
+              <view
+                style="
+                  display: flex;
+                  background: #fff;
+                  border-radius: 16px;
+                  box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
+                  padding: 10px 14px;
+                  align-items: center;
+                "
+              >
+                <image
+                  :src="item.image"
+                  style="
+                    width: 70px;
+                    height: 50px;
+                    border-radius: 10px;
+                    object-fit: cover;
+                    margin-right: 12px;
+                  "
+                />
+                <view style="flex: 1">
+                  <view
+                    style="
+                      font-weight: bold;
+                      font-size: 15px;
+                      color: #2c4a52;
+                      margin-bottom: 2px;
+                    "
+                    >{{ item.title }}</view
+                  >
+                  <view style="font-size: 13px; color: #888; margin-bottom: 2px"
+                    >评分：{{ item.score }}分</view
+                  >
+                  <view
+                    style="
+                      display: flex;
+                      align-items: center;
+                      font-size: 12px;
+                      color: #888;
+                    "
+                  >
+                    <view style="margin-right: 10px">{{ item.traffic }}</view>
+                    <view>{{ item.weather }}</view>
                   </view>
-                  <view class="event-line-content">
-                    <view class="event-dot"></view>
+                </view>
+              </view>
+            </view>
+          </template>
+          <template v-else-if="jigsawType === 'budget'">
+            <view
+              style="
+                background: #fcf6e8;
+                border-radius: 16px;
+                box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
+                padding: 18px 18px 10px 18px;
+                margin-bottom: 18px;
+              "
+            >
+              <view
+                style="
+                  font-weight: bold;
+                  font-size: 15px;
+                  color: #2c4a52;
+                  margin-bottom: 10px;
+                "
+                >预算面板</view
+              >
+              <view
+                v-for="(label, key) in {
+                  住宿: 'hotel',
+                  餐饮: 'food',
+                  娱乐: 'entertainment',
+                }"
+                :key="key"
+                style="margin-bottom: 12px"
+              >
+                <view
+                  style="display: flex; align-items: center; margin-bottom: 2px"
+                >
+                  <view style="width: 40px; color: #2c4a52; font-size: 14px">{{
+                    label
+                  }}</view>
+                  <view style="flex: 1; margin: 0 8px">
+                    <input
+                      type="range"
+                      min="0"
+                      :max="budgetJigsawData.total"
+                      v-model.number="budgetJigsawData[key]"
+                      style="width: 100%; accent-color: #7c3aed"
+                    />
+                  </view>
+                  <view
+                    style="
+                      color: #7c3aed;
+                      font-weight: bold;
+                      width: 60px;
+                      text-align: right;
+                    "
+                    >{{ budgetJigsawData[key] }}元</view
+                  >
+                </view>
+              </view>
+            </view>
+            <view
+              style="
+                background: #fcf6e8;
+                border-radius: 16px;
+                box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
+                padding: 18px;
+              "
+            >
+              <view
+                style="
+                  font-weight: bold;
+                  font-size: 15px;
+                  color: #2c4a52;
+                  margin-bottom: 10px;
+                "
+                >预计资金花费</view
+              >
+              <view style="display: flex; align-items: center">
+                <svg width="120" height="120" viewBox="0 0 120 120">
+                  <circle
+                    v-for="(item, idx) in budgetJigsawData.chart"
+                    :key="idx"
+                    :stroke="item.color"
+                    stroke-width="16"
+                    fill="none"
+                    :stroke-dasharray="(item.value / 7000) * 377 + ',' + 377"
+                    :stroke-dashoffset="getBudgetChartOffset(idx)"
+                    cx="60"
+                    cy="60"
+                    r="50"
+                  />
+                </svg>
+                <view style="margin-left: 16px">
+                  <view
+                    v-for="(item, idx) in budgetJigsawData.chart"
+                    :key="idx"
+                    style="
+                      font-size: 13px;
+                      color: #2c4a52;
+                      margin-bottom: 4px;
+                      display: flex;
+                      align-items: center;
+                    "
+                  >
                     <view
-                      class="event-line"
-                      v-if="index < day.events.length - 1"
+                      :style="{
+                        width: '12px',
+                        height: '12px',
+                        background: item.color,
+                        borderRadius: '6px',
+                        display: 'inline-block',
+                        marginRight: '6px',
+                      }"
                     ></view>
-                    <view class="event-image-card">
-                      <image
-                        :src="event.image"
-                        mode="aspectFill"
-                        class="event-image"
-                      ></image>
-                      <view class="location-overlay">{{ event.location }}</view>
+                    {{ item.name }}：{{ item.value }}元
+                  </view>
+                </view>
+              </view>
+            </view>
+          </template>
+          <template v-else>
+            <!-- 行程预览（现有itinerary部分） -->
+            <view class="timeline">
+              <view v-for="day in itinerary" :key="day.date">
+                <view class="timeline-day">
+                  <text class="date">{{ day.date }}</text>
+                  <text class="weather"
+                    >{{ day.weatherIcon }} {{ day.temperature }}</text
+                  >
+                </view>
+                <view class="timeline-events">
+                  <view
+                    class="event-item"
+                    v-for="(event, index) in day.events"
+                    :key="index"
+                  >
+                    <view class="event-time">
+                      <view
+                        class="time-main"
+                        v-html="formatTime(event.time).main"
+                      ></view>
+                      <view
+                        class="time-range"
+                        v-if="formatTime(event.time).range"
+                        v-html="formatTime(event.time).range"
+                      ></view>
+                      <text class="time-sub" v-if="event.subtext">{{
+                        event.subtext
+                      }}</text>
                     </view>
-                    <view class="travel-info" v-if="event.travel">
-                      <view class="travel-line"></view>
-                      <text
-                        >{{ event.travel.duration }}
-                        {{ event.travel.method }}</text
-                      >
-                      <view class="travel-arrow">↓</view>
+                    <view class="event-line-content">
+                      <view class="event-dot"></view>
+                      <view
+                        class="event-line"
+                        v-if="index < day.events.length - 1"
+                      ></view>
+                      <view class="event-image-card">
+                        <image
+                          :src="event.image"
+                          mode="aspectFill"
+                          class="event-image"
+                        ></image>
+                        <view class="location-overlay">{{
+                          event.location
+                        }}</view>
+                      </view>
+                      <view class="travel-info" v-if="event.travel">
+                        <view class="travel-line"></view>
+                        <text
+                          >{{ event.travel.duration }}
+                          {{ event.travel.method }}</text
+                        >
+                        <view class="travel-arrow">↓</view>
+                      </view>
                     </view>
                   </view>
                 </view>
               </view>
             </view>
-          </view>
+          </template>
         </scroll-view>
       </view>
     </view>
@@ -331,6 +514,43 @@ export default {
       showJigsaw: false,
       itinerary: [],
       isGenerating: false,
+      jigsawType: "location", // 'location' | 'budget' | 'itinerary'
+      locationJigsawData: [
+        {
+          title: "成都三元油菜花田",
+          score: 4.8,
+          traffic: "地铁出行",
+          weather: "☀️ 32/39℃",
+          image: "/static/images/flower.jpg",
+        },
+        {
+          title: "云南罗平油菜花田",
+          score: 4.8,
+          traffic: "飞机出行",
+          weather: "☀️ 32/39℃",
+          image: "/static/images/flower.jpg",
+        },
+        {
+          title: "云南罗平油菜花田",
+          score: 4.8,
+          traffic: "高铁出行",
+          weather: "☀️ 32/39℃",
+          image: "/static/images/flower.jpg",
+        },
+      ],
+      budgetJigsawData: {
+        hotel: 3400,
+        food: 3400,
+        entertainment: 3400,
+        total: 10000,
+        chart: [
+          { name: "住宿", value: 2344, color: "#e6c36f" },
+          { name: "餐饮", value: 2344, color: "#8fd3c7" },
+          { name: "娱乐", value: 2333, color: "#f7a35c" },
+          { name: "交通", value: 234, color: "#5b9bd5" },
+          { name: "其他", value: 234, color: "#7cb5ec" },
+        ],
+      },
     };
   },
   onLoad() {
@@ -413,8 +633,16 @@ export default {
         this.$nextTick(() => {
           this.lastMessageId = "msg-" + (this.messages.length - 1);
         });
+        this.inputMessage = "";
 
-        this.inputMessage = ""; // Clear input after sending
+        // --- 灵感拼图类型判断 ---
+        if (userInput.includes("预算")) {
+          this.jigsawType = "budget";
+          // this.showJigsaw = true; // 不自动弹出
+        } else {
+          this.jigsawType = "location";
+          // this.showJigsaw = true; // 不自动弹出
+        }
 
         // --- Mock AI Response Flow ---
         if (userInput.includes("成都")) {
@@ -428,19 +656,15 @@ export default {
 
           setTimeout(() => {
             if (!this.isGenerating) return;
-            // 移除所有"生成中"状态的消息
             this.messages = this.messages.filter(
               (msg) =>
                 !(msg.type === "status" && msg.content.includes("生成中"))
             );
-            // 插入"已完成生成"
             this.messages.push({
               type: "status",
               content: "已完成生成",
             });
             this.scrollToBottom();
-
-            // 插入AI生成的最终回复
             this.messages.push({
               type: "ai",
               content: "已完成生成，请进入灵感拼图查看路线预览及查看详情。",
@@ -450,9 +674,10 @@ export default {
             this.saveChatToHistory();
             this.scrollToBottom();
             this.isGenerating = false;
+            // --- AI生成完毕后切换为攻略模式 ---
+            this.jigsawType = "itinerary";
           }, 2000);
         } else {
-          // Default AI reply
           setTimeout(() => {
             this.messages.push({
               type: "ai",
@@ -525,6 +750,12 @@ export default {
         (msg) => !(msg.type === "status" && msg.content.includes("生成中"))
       );
       this.isGenerating = false;
+
+      // 添加"已取消生成"状态消息
+      this.messages.push({
+        type: "status",
+        content: "已取消生成",
+      });
       this.scrollToBottom();
 
       // 添加AI询问消息
@@ -538,6 +769,14 @@ export default {
         this.saveChatToHistory();
         this.scrollToBottom();
       }, 500);
+    },
+    getBudgetChartOffset(idx) {
+      const total = this.budgetJigsawData.total;
+      const value =
+        this.budgetJigsawData[this.budgetJigsawData.chart[idx].name];
+      const percentage = value / total;
+      const angle = percentage * 360;
+      return 377 - (angle / 360) * 377;
     },
   },
 };
@@ -1008,12 +1247,6 @@ export default {
     padding: 10px 0;
     font-size: 14px;
     color: #2c4a52;
-
-    .status-icon {
-      width: 20px;
-      height: 20px;
-      margin-right: 8px;
-    }
   }
 
   .message-content {
@@ -1238,20 +1471,28 @@ export default {
 }
 
 .status-content {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   font-size: 15px;
   color: #2c4a52;
-  width: 100%;
+  min-height: 40px;
+  padding: 8px 16px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
   .status-icon {
     width: 20px;
     height: 20px;
     margin-right: 8px;
   }
+
+  text {
+    margin-right: 8px;
+  }
+
   .cancel-btn {
-    margin-left: 12px;
     background: #fff0f0;
     color: #d9534f;
     border: 1px solid #d9534f;
@@ -1263,6 +1504,7 @@ export default {
     cursor: pointer;
     transition: background 0.2s;
   }
+
   .cancel-btn:active {
     background: #ffeaea;
   }
