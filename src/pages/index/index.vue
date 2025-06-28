@@ -77,7 +77,7 @@
       <view class="welcome-card" v-if="showWelcome">
         <view class="welcome-title">Hi~我的AI旅游小助手</view>
         <view class="welcome-subtitle"
-          >你想找的小写游，可以为您推荐好玩的、好玩的、便宜的旅游打卡地哦~</view
+          >你贴心的小导游，可以为您推荐好吃的、好玩的、便宜的旅游打卡地哦~</view
         >
 
         <!-- 快捷选项按钮组 -->
@@ -96,17 +96,17 @@
             <view
               class="option-btn"
               @click="autoSendMessage('我想超值的住宿', true)"
-              >我想超值的住宿</view
+              >我想超性价比的旅游</view
             >
             <view
               class="option-btn"
               @click="autoSendMessage('我想异地有限', true)"
-              >我想异地有限</view
+              >我预算有限</view
             >
             <view
               class="option-btn"
               @click="autoSendMessage('时尚潮人狂', true)"
-              >时尚潮人狂</view
+              >时间别太赶</view
             >
             <view
               class="option-btn"
