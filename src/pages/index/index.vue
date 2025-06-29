@@ -250,7 +250,11 @@
             <template v-else>预览攻略</template>
           </view>
         </view>
-        <scroll-view class="timeline-container">
+        <scroll-view
+          class="timeline-container"
+          scroll-y
+          :style="{ height: '100%' }"
+        >
           <template v-if="jigsawType === 'location'">
             <view
               v-for="(item, idx) in locationJigsawData"
@@ -425,7 +429,7 @@
           <template v-else>
             <!-- 行程预览（现有itinerary部分） -->
             <view class="timeline">
-              <view v-for="day in itinerary" :key="day.date">
+              <view v-for="(day, dayIdx) in itinerary" :key="day.date">
                 <view class="timeline-day">
                   <text class="date">{{ day.date }}</text>
                   <text class="weather"
@@ -435,8 +439,8 @@
                 <view class="timeline-events">
                   <view
                     class="event-item"
-                    v-for="(event, index) in day.events"
-                    :key="index"
+                    v-for="(event, eventIdx) in day.events"
+                    :key="eventIdx"
                   >
                     <view class="event-time">
                       <view
@@ -456,9 +460,12 @@
                       <view class="event-dot"></view>
                       <view
                         class="event-line"
-                        v-if="index < day.events.length - 1"
+                        v-if="eventIdx < day.events.length - 1"
                       ></view>
-                      <view class="event-image-card">
+                      <view
+                        class="event-image-card"
+                        @tap="onEditEvent(dayIdx, eventIdx, event)"
+                      >
                         <image
                           :src="event.image"
                           mode="aspectFill"
@@ -481,6 +488,83 @@
                     </view>
                   </view>
                 </view>
+              </view>
+            </view>
+            <!-- 按钮放到scroll-view内部timeline后面 -->
+            <view class="jigsaw-action-btns">
+              <template v-if="!isSimpleEditMode">
+                <view class="jigsaw-btn" @tap="onViewDetail">
+                  <image
+                    src="/static/icons/success.svg"
+                    mode="aspectFit"
+                    class="jigsaw-btn-icon"
+                  />
+                  <text>查看详情</text>
+                </view>
+                <view class="jigsaw-btn" @tap="onSimpleEdit">
+                  <image
+                    src="/static/icons/settings.png"
+                    mode="aspectFit"
+                    class="jigsaw-btn-icon"
+                  />
+                  <text>简单修改</text>
+                </view>
+              </template>
+              <template v-else>
+                <view class="jigsaw-btn" style="width: 100%" @tap="onSaveRoute">
+                  <image
+                    src="/static/icons/star.png"
+                    mode="aspectFit"
+                    class="jigsaw-btn-icon"
+                  />
+                  <text>保存路线</text>
+                </view>
+              </template>
+            </view>
+            <view style="height: 32px"></view>
+            <!-- 地点选择弹窗 -->
+            <view
+              v-if="showPlaceSelector && editEvent && editEvent.event"
+              class="place-selector-modal"
+            >
+              <view class="place-selector-content">
+                <view class="place-selector-title">
+                  第{{ editEvent && editEvent.dayIndex + 1 }}天 ·
+                  {{ editEvent && editEvent.event && editEvent.event.time }}
+                </view>
+                <view style="margin: 10px 0 6px 0">已定地点：</view>
+                <view class="place-selected">
+                  <image
+                    :src="editEvent && editEvent.event && editEvent.event.image"
+                    class="place-selected-img"
+                  />
+                  <view class="place-selected-name">{{
+                    editEvent && editEvent.event && editEvent.event.location
+                  }}</view>
+                </view>
+                <view class="place-tabs">
+                  <view
+                    v-for="(tab, idx) in placeTabs"
+                    :key="tab"
+                    :class="['place-tab', { active: activePlaceTab === idx }]"
+                    @tap="onSwitchPlaceTab(idx)"
+                    >{{ tab }}</view
+                  >
+                </view>
+                <view class="place-candidates">
+                  <view
+                    v-for="place in placeCandidates[activePlaceTab]"
+                    :key="place.name"
+                    class="place-card"
+                    @tap="onSelectPlace(place)"
+                  >
+                    <image :src="place.image" class="place-card-img" />
+                    <view class="place-card-name">{{ place.name }}</view>
+                  </view>
+                </view>
+                <view class="place-selector-close" @tap="onClosePlaceSelector"
+                  >关闭</view
+                >
               </view>
             </view>
           </template>
@@ -553,6 +637,27 @@ export default {
           { name: "娱乐", value: 3400, color: "#f7a35c" },
         ],
       },
+      isSimpleEditMode: false,
+      showPlaceSelector: false,
+      editEvent: null, // {dayIndex, eventIndex, event}
+      placeTabs: ["相似主体", "更高性价比", "更少人流"],
+      activePlaceTab: 0,
+      placeCandidates: [
+        [
+          { name: "当地YYY饭店", image: "/static/images/food.jpg" },
+          { name: "当地YYY饭店", image: "/static/images/food.jpg" },
+          { name: "当地YYY饭店", image: "/static/images/food.jpg" },
+          { name: "当地YYY饭店", image: "/static/images/food.jpg" },
+        ],
+        [
+          { name: "高性价比饭店A", image: "/static/images/food.jpg" },
+          { name: "高性价比饭店B", image: "/static/images/food.jpg" },
+        ],
+        [
+          { name: "人流少饭店A", image: "/static/images/food.jpg" },
+          { name: "人流少饭店B", image: "/static/images/food.jpg" },
+        ],
+      ],
     };
   },
   onLoad() {
@@ -612,6 +717,8 @@ export default {
           title: this.currentChatTitle,
           messages: [...this.messages],
           lastTime: new Date().toLocaleString(),
+          itinerary: JSON.parse(JSON.stringify(this.itinerary)),
+          budget: JSON.parse(JSON.stringify(this.budgetJigsawData)),
         };
 
         const index = this.chatList.findIndex((chat) => chat.id === chatId);
@@ -630,6 +737,12 @@ export default {
       this.messages = [...chat.messages];
       this.showWelcome = false;
       this.toggleSidebar();
+      if (chat.itinerary) {
+        this.itinerary = JSON.parse(JSON.stringify(chat.itinerary));
+      }
+      if (chat.budget) {
+        this.budgetJigsawData = JSON.parse(JSON.stringify(chat.budget));
+      }
     },
     sendMessage() {
       if (this.inputMessage.trim()) {
@@ -720,18 +833,24 @@ export default {
               image: "/static/images/airport1.jpg",
               location: "成都双流国际机场",
               travel: { duration: "1.5h", method: "乘飞机前往" },
+              type: "交通",
+              duration: 90,
             },
             {
               time: "09:30",
               image: "/static/images/airport2.jpg",
               location: "昆明长水机场",
               travel: { duration: "2.5h", method: "乘大巴前往" },
+              type: "交通",
+              duration: 150,
             },
             {
               time: "12:00",
               image: "/static/images/flower.jpg",
               location: "罗平油菜花田入口",
               travel: { duration: "15min", method: "步行" },
+              type: "游玩",
+              duration: 120,
             },
             {
               time: "12:15 ~ 13:45",
@@ -739,6 +858,94 @@ export default {
               image: "/static/images/food.jpg",
               location: "当地XXX饭店",
               travel: { duration: "30min", method: "步行" },
+              type: "吃饭",
+              duration: 90,
+            },
+          ],
+        },
+        {
+          date: "4月13日",
+          weatherIcon: "⛅",
+          temperature: "28/35℃",
+          events: [
+            {
+              time: "08:30",
+              image: "/static/images/flower.jpg",
+              location: "罗平油菜花田深处",
+              travel: { duration: "20min", method: "步行" },
+              type: "游玩",
+              duration: 120,
+            },
+            {
+              time: "10:30",
+              image: "/static/images/food.jpg",
+              location: "花田农家乐",
+              travel: { duration: "10min", method: "步行" },
+              type: "吃饭",
+              duration: 60,
+            },
+            {
+              time: "12:00",
+              image: "/static/images/airport2.jpg",
+              location: "昆明长水机场",
+              travel: { duration: "2h", method: "乘大巴返回" },
+              type: "交通",
+              duration: 120,
+            },
+            {
+              time: "14:30",
+              image: "/static/images/airport1.jpg",
+              location: "成都双流国际机场",
+              travel: { duration: "2h", method: "乘飞机返回" },
+              type: "交通",
+              duration: 120,
+            },
+            {
+              time: "17:00",
+              image: "/static/images/food.jpg",
+              location: "成都火锅店",
+              travel: { duration: "30min", method: "步行" },
+              type: "吃饭",
+              duration: 90,
+            },
+          ],
+        },
+        {
+          date: "4月14日",
+          weatherIcon: "☁️",
+          temperature: "25/32℃",
+          events: [
+            {
+              time: "09:00",
+              image: "/static/images/flower.jpg",
+              location: "成都人民公园",
+              travel: { duration: "20min", method: "步行" },
+              type: "游玩",
+              duration: 120,
+            },
+            {
+              time: "11:30",
+              image: "/static/images/food.jpg",
+              location: "公园茶馆",
+              travel: { duration: "10min", method: "步行" },
+              type: "吃饭",
+              duration: 60,
+            },
+            {
+              time: "13:00",
+              image: "/static/images/flower.jpg",
+              location: "宽窄巷子",
+              travel: { duration: "30min", method: "步行" },
+              type: "游玩",
+              duration: 120,
+            },
+            {
+              time: "15:30",
+              image: "/static/images/food.jpg",
+              location: "成都小吃街",
+              travel: { duration: "20min", method: "步行" },
+              type: "吃饭",
+              duration: 60,
             },
           ],
         },
@@ -820,6 +1027,108 @@ export default {
         (total, item) => total + item.value,
         0
       );
+    },
+    onViewDetail() {
+      const itineraryStr = encodeURIComponent(JSON.stringify(this.itinerary));
+      const budgetStr = encodeURIComponent(
+        JSON.stringify(this.budgetJigsawData)
+      );
+      uni.navigateTo({
+        url: `/pages/detail/detail?itinerary=${itineraryStr}&budget=${budgetStr}`,
+      });
+    },
+    onSimpleEdit() {
+      this.isSimpleEditMode = true;
+    },
+    onSaveRoute() {
+      this.isSimpleEditMode = false;
+      uni.showToast({ title: "已保存路线", icon: "success" });
+    },
+    onEditEvent(dayIndex, eventIndex, event) {
+      if (!this.isSimpleEditMode) return;
+      if (
+        typeof dayIndex !== "number" ||
+        typeof eventIndex !== "number" ||
+        !event ||
+        !this.itinerary[dayIndex] ||
+        !this.itinerary[dayIndex].events ||
+        !this.itinerary[dayIndex].events[eventIndex]
+      ) {
+        return;
+      }
+      this.editEvent = { dayIndex, eventIndex, event };
+      this.showPlaceSelector = true;
+      this.activePlaceTab = 0;
+
+      // 动态生成placeTabs和placeCandidates
+      if (event.location && event.location.includes("饭店")) {
+        this.placeTabs = ["相似主体", "更高性价比", "更少人流"];
+        this.placeCandidates = [
+          [
+            { name: "当地YYY饭店", image: "/static/images/food.jpg" },
+            { name: "当地ZZZ饭店", image: "/static/images/food.jpg" },
+          ],
+          [
+            { name: "高性价比饭店A", image: "/static/images/food.jpg" },
+            { name: "高性价比饭店B", image: "/static/images/food.jpg" },
+          ],
+          [
+            { name: "人流少饭店A", image: "/static/images/food.jpg" },
+            { name: "人流少饭店B", image: "/static/images/food.jpg" },
+          ],
+        ];
+      } else if (event.location && event.location.includes("机场")) {
+        this.placeTabs = ["同类机场", "交通便利", "航班多"];
+        this.placeCandidates = [
+          [
+            { name: "成都天府机场", image: "/static/images/airport1.jpg" },
+            { name: "重庆江北机场", image: "/static/images/airport2.jpg" },
+          ],
+          [{ name: "交通便利机场A", image: "/static/images/airport1.jpg" }],
+          [{ name: "航班多机场A", image: "/static/images/airport2.jpg" }],
+        ];
+      } else {
+        this.placeTabs = ["推荐"];
+        this.placeCandidates = [
+          [
+            { name: "默认推荐A", image: "/static/images/flower.jpg" },
+            { name: "默认推荐B", image: "/static/images/flower.jpg" },
+          ],
+        ];
+      }
+    },
+    onSelectPlace(place) {
+      try {
+        const { dayIndex, eventIndex } = this.editEvent;
+        if (
+          !this.itinerary[dayIndex] ||
+          !this.itinerary[dayIndex].events ||
+          !this.itinerary[dayIndex].events[eventIndex]
+        ) {
+          this.showPlaceSelector = false;
+          this.editEvent = null;
+          return;
+        }
+        const newEvent = {
+          ...this.itinerary[dayIndex].events[eventIndex],
+          location: place.name,
+          image: place.image,
+        };
+        this.$set(this.itinerary[dayIndex].events, eventIndex, newEvent);
+        this.showPlaceSelector = false;
+        this.editEvent = null;
+      } catch (e) {
+        this.showPlaceSelector = false;
+        this.editEvent = null;
+        console.error("onSelectPlace error", e);
+      }
+    },
+    onSwitchPlaceTab(idx) {
+      this.activePlaceTab = idx;
+    },
+    onClosePlaceSelector() {
+      this.showPlaceSelector = false;
+      this.editEvent = null;
     },
   },
 };
@@ -1372,6 +1681,10 @@ export default {
   bottom: 0;
   width: 85%;
   max-width: 360px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background-color: #4f7063;
   z-index: 1000;
   transform: translateX(100%);
@@ -1387,6 +1700,8 @@ export default {
     display: flex;
     flex-direction: column;
     padding-top: var(--status-bar-height);
+    flex: 1;
+    min-height: 0;
   }
 
   .jigsaw-header {
@@ -1405,10 +1720,11 @@ export default {
 
   .timeline-container {
     flex: 1;
+    height: 100%;
+    min-height: 0;
     background-color: #f8f4e9;
     padding: 20px;
     box-sizing: border-box;
-    height: 100%;
     overflow-y: auto;
   }
 
@@ -1561,5 +1877,149 @@ export default {
   100% {
     transform: rotate(360deg);
   }
+}
+
+.jigsaw-action-btns {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 24px 0 0 0;
+  .jigsaw-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #fff;
+    border-radius: 12px;
+    padding: 12px 18px 8px 18px;
+    box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
+    font-size: 13px;
+    color: #2c4a52;
+    cursor: pointer;
+    .jigsaw-btn-icon {
+      width: 28px;
+      height: 28px;
+      margin-bottom: 6px;
+    }
+  }
+}
+
+.place-selector-modal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.place-selector-content {
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px 16px 18px 16px;
+  width: 90%;
+  max-width: 320px;
+  box-shadow: 0 4px 24px rgba(60, 89, 107, 0.12);
+  position: relative;
+  border: 1px solid #e0e0e0;
+}
+
+.place-selector-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.place-selected {
+  display: flex;
+  align-items: center;
+  background: #f8f4e9;
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.place-selected-img {
+  width: 56px;
+  height: 42px;
+  border-radius: 8px;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.place-selected-name {
+  font-size: 15px;
+  color: #2c4a52;
+}
+
+.place-tabs {
+  display: flex;
+  margin-bottom: 10px;
+  border-bottom: 2px solid #eee;
+}
+
+.place-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  color: #888;
+  padding: 8px 0 6px 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.place-tab.active {
+  color: #673ab7;
+  font-weight: bold;
+  border-bottom: 2px solid #673ab7;
+}
+
+.place-candidates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.place-card {
+  background: #f8f4e9;
+  border-radius: 12px;
+  padding: 8px 6px 6px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(60, 89, 107, 0.06);
+  transition: box-shadow 0.2s;
+}
+
+.place-card:active {
+  box-shadow: 0 4px 16px rgba(60, 89, 107, 0.12);
+}
+
+.place-card-img {
+  width: 80px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-bottom: 6px;
+}
+
+.place-card-name {
+  font-size: 14px;
+  color: #2c4a52;
+}
+
+.place-selector-close {
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+  margin-top: 4px;
+  padding: 6px 0;
+  cursor: pointer;
 }
 </style>
