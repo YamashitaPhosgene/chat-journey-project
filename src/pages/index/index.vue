@@ -95,17 +95,17 @@
           <view class="option-grid">
             <view
               class="option-btn"
-              @click="autoSendMessage('我想超值的住宿', true)"
+              @click="autoSendMessage('我想超性价比的旅游', true)"
               >我想超性价比的旅游</view
             >
             <view
               class="option-btn"
-              @click="autoSendMessage('我想异地有限', true)"
+              @click="autoSendMessage('我预算有限', true)"
               >我预算有限</view
             >
             <view
               class="option-btn"
-              @click="autoSendMessage('时尚潮人狂', true)"
+              @click="autoSendMessage('时间别太赶', true)"
               >时间别太赶</view
             >
             <view
@@ -150,7 +150,7 @@
                 <view class="message-content status-content">
                   <template v-if="message.content.includes('生成中')">
                     <image
-                      class="status-icon"
+                      class="status-icon loading-spin"
                       src="/static/icons/loading.svg"
                       mode="aspectFit"
                     />
@@ -250,7 +250,7 @@
             <template v-else>预览攻略</template>
           </view>
         </view>
-        <scroll-view scroll-y class="timeline-container">
+        <scroll-view class="timeline-container">
           <template v-if="jigsawType === 'location'">
             <view
               v-for="(item, idx) in locationJigsawData"
@@ -326,12 +326,12 @@
               >
               <view
                 v-for="(label, key) in {
-                  住宿: 'hotel',
-                  餐饮: 'food',
-                  娱乐: 'entertainment',
+                  住宿: '住宿',
+                  餐饮: '餐饮',
+                  娱乐: '娱乐',
                 }"
                 :key="key"
-                style="margin-bottom: 12px"
+                style="margin-bottom: 32px"
               >
                 <view
                   style="display: flex; align-items: center; margin-bottom: 2px"
@@ -339,24 +339,25 @@
                   <view style="width: 40px; color: #2c4a52; font-size: 14px">{{
                     label
                   }}</view>
-                  <view style="flex: 1; margin: 0 8px">
+                  <view style="flex: 1; margin: 0 8px; position: relative">
                     <input
-                      type="range"
-                      min="0"
-                      :max="budgetJigsawData.total"
+                      type="number"
                       v-model.number="budgetJigsawData[key]"
-                      style="width: 100%; accent-color: #7c3aed"
+                      style="
+                        width: 100%;
+                        height: 40px;
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 0 12px;
+                        font-size: 14px;
+                        color: #2c4a52;
+                        background: #fff;
+                      "
+                      placeholder="请输入预算"
+                      min="0"
+                      max="10000"
                     />
                   </view>
-                  <view
-                    style="
-                      color: #7c3aed;
-                      font-weight: bold;
-                      width: 60px;
-                      text-align: right;
-                    "
-                    >{{ budgetJigsawData[key] }}元</view
-                  >
                 </view>
               </view>
             </view>
@@ -385,11 +386,12 @@
                     :stroke="item.color"
                     stroke-width="16"
                     fill="none"
-                    :stroke-dasharray="(item.value / 7000) * 377 + ',' + 377"
+                    :stroke-dasharray="getBudgetChartDasharray(idx)"
                     :stroke-dashoffset="getBudgetChartOffset(idx)"
                     cx="60"
                     cy="60"
                     r="50"
+                    transform="rotate(-90 60 60)"
                   />
                 </svg>
                 <view style="margin-left: 16px">
@@ -461,6 +463,8 @@
                           :src="event.image"
                           mode="aspectFill"
                           class="event-image"
+                          :lazy-load="true"
+                          @error="event.image = '/static/images/default.jpg'"
                         ></image>
                         <view class="location-overlay">{{
                           event.location
@@ -539,16 +543,14 @@ export default {
         },
       ],
       budgetJigsawData: {
-        hotel: 3400,
-        food: 3400,
-        entertainment: 3400,
-        total: 10000,
+        住宿: 3400,
+        餐饮: 3400,
+        娱乐: 3400,
+        total: 10200,
         chart: [
-          { name: "住宿", value: 2344, color: "#e6c36f" },
-          { name: "餐饮", value: 2344, color: "#8fd3c7" },
-          { name: "娱乐", value: 2333, color: "#f7a35c" },
-          { name: "交通", value: 234, color: "#5b9bd5" },
-          { name: "其他", value: 234, color: "#7cb5ec" },
+          { name: "住宿", value: 3400, color: "#e6c36f" },
+          { name: "餐饮", value: 3400, color: "#8fd3c7" },
+          { name: "娱乐", value: 3400, color: "#f7a35c" },
         ],
       },
     };
@@ -557,6 +559,17 @@ export default {
     const systemInfo = uni.getSystemInfoSync();
     this.statusBarHeight = systemInfo.statusBarHeight;
     this.contentPaddingTop = this.statusBarHeight + this.navContentHeight;
+  },
+  watch: {
+    "budgetJigsawData.住宿"(newVal) {
+      this.syncChartAndTotal("住宿", newVal);
+    },
+    "budgetJigsawData.餐饮"(newVal) {
+      this.syncChartAndTotal("餐饮", newVal);
+    },
+    "budgetJigsawData.娱乐"(newVal) {
+      this.syncChartAndTotal("娱乐", newVal);
+    },
   },
   methods: {
     toggleSidebar() {
@@ -770,13 +783,43 @@ export default {
         this.scrollToBottom();
       }, 500);
     },
+    getBudgetChartDasharray(idx) {
+      // 总周长 = 2 * Math.PI * r (r=50)
+      const C = 2 * Math.PI * 50;
+      const total = this.budgetJigsawData.chart.reduce(
+        (sum, item) => sum + item.value,
+        0
+      );
+      const value = this.budgetJigsawData.chart[idx].value;
+      const length = (value / total) * C;
+      return `${length} ${C - length}`;
+    },
     getBudgetChartOffset(idx) {
-      const total = this.budgetJigsawData.total;
-      const value =
-        this.budgetJigsawData[this.budgetJigsawData.chart[idx].name];
-      const percentage = value / total;
-      const angle = percentage * 360;
-      return 377 - (angle / 360) * 377;
+      // 总周长 = 2 * Math.PI * r (r=50)
+      const C = 2 * Math.PI * 50;
+      const total = this.budgetJigsawData.chart.reduce(
+        (sum, item) => sum + item.value,
+        0
+      );
+      let offset = 0;
+      for (let i = 0; i < idx; i++) {
+        offset += (this.budgetJigsawData.chart[i].value / total) * C;
+      }
+      return -offset;
+    },
+    syncChartAndTotal(key, newVal) {
+      // 更新chart数组
+      const chartItem = this.budgetJigsawData.chart.find(
+        (item) => item.name === key
+      );
+      if (chartItem) {
+        chartItem.value = newVal;
+      }
+      // 重新计算总数
+      this.budgetJigsawData.total = this.budgetJigsawData.chart.reduce(
+        (total, item) => total + item.value,
+        0
+      );
     },
   },
 };
@@ -1366,6 +1409,7 @@ export default {
     padding: 20px;
     box-sizing: border-box;
     height: 100%;
+    overflow-y: auto;
   }
 
   .timeline {
@@ -1507,6 +1551,15 @@ export default {
 
   .cancel-btn:active {
     background: #ffeaea;
+  }
+}
+
+.loading-spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>
