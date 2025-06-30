@@ -212,7 +212,7 @@
         <input
           type="text"
           v-model="inputMessage"
-          placeholder="有什么自己想攻略，直接问我吧~"
+          placeholder="何必自己做攻略，直接问我吧~"
           @confirm="sendMessage"
           class="message-input"
         />

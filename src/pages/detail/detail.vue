@@ -151,6 +151,7 @@
           </view>
         </view>
       </view>
+      <button class="edit-btn" @click="goEditRoute">修改路线</button>
     </view>
     <view v-else class="map-tab">
       <v-chart
@@ -445,6 +446,7 @@ export default {
 .detail-container {
   background: #fff;
   min-height: 100vh;
+  padding-bottom: 4px;
 }
 .detail-header {
   display: flex;
@@ -476,20 +478,20 @@ export default {
 }
 .day-card {
   background: #f8f4e9;
-  margin: 16px;
+  margin: 8px 16px 8px 16px;
   border-radius: 12px;
   padding: 12px;
 }
 .budget-card {
   background: #f8f4e9;
-  margin: 16px;
+  margin: 8px 16px 8px 16px;
   border-radius: 12px;
   padding: 12px;
   text-align: center;
 }
 .edit-btn {
   width: 90%;
-  margin: 24px 5%;
+  margin: 16px 5% 10px 5%;
   background: #673ab7;
   color: #fff;
   border-radius: 8px;
@@ -539,7 +541,7 @@ export default {
 .day-header {
   background: #f8f4e9;
   border-radius: 12px;
-  margin: 16px;
+  margin: 8px 16px 8px 16px;
   padding: 12px;
   font-size: 15px;
 }
