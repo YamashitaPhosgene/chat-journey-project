@@ -52,8 +52,10 @@
     "@dcloudio/uni-mp-weixin": "3.0.0-4060420250429001",
     "@dcloudio/uni-mp-xhs": "3.0.0-4060420250429001",
     "@dcloudio/uni-quickapp-webview": "3.0.0-4060420250429001",
+    "echarts": "^5.6.0",
     "uni-preset-vue": "file:",
     "vue": "^3.4.21",
+    "vue-echarts": "^7.0.3",
     "vue-i18n": "^9.1.9"
   },
   "devDependencies": {

@@ -13,6 +13,12 @@
       "style": {
         "navigationBarTitleText": "行程详情"
       }
+    },
+    {
+      "path": "pages/editRoute/editRoute",
+      "style": {
+        "navigationBarTitleText": "修改路线"
+      }
     }
   ],
   "globalStyle": {

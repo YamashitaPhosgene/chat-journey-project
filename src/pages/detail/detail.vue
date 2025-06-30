@@ -80,7 +80,7 @@
           >
         </view>
       </view>
-      <button class="edit-btn">修改路线</button>
+      <button class="edit-btn" @click="goEditRoute">修改路线</button>
     </view>
     <view v-else-if="activeTab === 1" class="detail-tab">
       <view class="day-switch">
@@ -153,13 +153,36 @@
       </view>
     </view>
     <view v-else class="map-tab">
-      <view>地图模式（占位）</view>
+      <v-chart
+        ref="echarts"
+        :option="option"
+        autoresize
+        style="width: 100%; height: 400px"
+        @click="onMapClick"
+      />
+      <uni-popup v-model="showPopup" type="bottom">
+        <view class="popup-content">
+          <text class="title">{{ currentPoint.name }}</text>
+          <view class="img-list">
+            <image
+              v-for="(img, idx) in currentPoint.images"
+              :key="idx"
+              :src="img"
+            />
+          </view>
+        </view>
+      </uni-popup>
+      <button class="edit-btn" @click="goEditRoute">修改路线</button>
     </view>
   </view>
 </template>
 
 <script>
+import * as echarts from "echarts";
+import VChart from "vue-echarts";
+
 export default {
+  components: { "v-chart": VChart },
   data() {
     return {
       tabs: ["总览", "每日详情", "地图模式"],
@@ -200,6 +223,31 @@ export default {
           collects: 30,
         },
       ],
+      showPopup: false,
+      currentPoint: {},
+      points: [
+        {
+          id: 1,
+          name: "太古里IFS",
+          coord: [104.080989, 30.657689],
+          images: [
+            "/static/images/ifs1.jpg",
+            "/static/images/ifs2.jpg",
+            "/static/images/ifs3.jpg",
+            "/static/images/ifs4.jpg",
+            "/static/images/ifs5.jpg",
+            "/static/images/ifs6.jpg",
+          ],
+        },
+        {
+          id: 2,
+          name: "春熙路",
+          coord: [104.082321, 30.657378],
+          images: ["/static/images/flower.jpg", "/static/images/food.jpg"],
+        },
+        // 可继续添加更多景点
+      ],
+      option: {},
     };
   },
   onLoad(options) {
@@ -217,9 +265,15 @@ export default {
     }
     this.timeChart = this.getTimeChartData();
   },
+  mounted() {
+    this.loadMap();
+  },
   methods: {
     goBack() {
       uni.navigateBack();
+    },
+    goEditRoute() {
+      uni.navigateTo({ url: "/pages/editRoute/editRoute" });
     },
     getBudgetChartDasharray(idx, chart) {
       const C = 2 * Math.PI * 50;
@@ -300,6 +354,88 @@ export default {
           collects: 15 + dayIdx * 3,
         },
       ];
+    },
+    async loadMap() {
+      // 在线获取四川省geoJSON
+      const res = await fetch(
+        "https://geo.datav.aliyun.com/areas_v3/bound/510000_full.json"
+      );
+      const geoJson = await res.json();
+      echarts.registerMap("sichuan", geoJson);
+      this.option = {
+        geo: {
+          map: "sichuan",
+          roam: true,
+          label: { show: true },
+          itemStyle: {
+            areaColor: "#4da3ff",
+            borderColor: "#fff",
+          },
+        },
+        series: [
+          {
+            type: "scatter",
+            coordinateSystem: "geo",
+            data: this.points.map((p) => ({
+              name: p.name,
+              value: p.coord,
+              id: p.id,
+            })),
+            symbolSize: 16,
+            label: {
+              show: true,
+              formatter: "{b}",
+              color: "#222",
+              backgroundColor: "#fff",
+              borderRadius: 4,
+              padding: [2, 6],
+            },
+            itemStyle: {
+              color: "#d0021b",
+            },
+          },
+          {
+            type: "lines",
+            coordinateSystem: "geo",
+            zlevel: 2,
+            effect: {
+              show: true,
+              period: 6,
+              trailLength: 0.1,
+              color: "#fff",
+              symbolSize: 4,
+            },
+            lineStyle: {
+              color: "#d0021b",
+              width: 2,
+              opacity: 0.6,
+              curveness: 0.2,
+            },
+            data: this.getLineData(),
+          },
+        ],
+      };
+    },
+    getLineData() {
+      const arr = [];
+      for (let i = 0; i < this.points.length - 1; i++) {
+        arr.push({
+          coords: [this.points[i].coord, this.points[i + 1].coord],
+        });
+      }
+      return arr;
+    },
+    onMapClick(params) {
+      if (
+        params.componentType === "series" &&
+        params.seriesType === "scatter"
+      ) {
+        const point = this.points.find((p) => p.name === params.name);
+        if (point) {
+          this.currentPoint = point;
+          this.showPopup = true;
+        }
+      }
     },
   },
 };
@@ -542,5 +678,21 @@ export default {
   background: #673ab7;
   color: #fff;
   font-weight: bold;
+}
+.map-tab {
+  padding: 16px 0;
+}
+.popup-content {
+  padding: 20px;
+}
+.img-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.img-list image {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
 }
 </style>
