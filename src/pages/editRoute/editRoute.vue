@@ -15,21 +15,47 @@
     <view class="days-section">
       <view v-for="(day, dayIdx) in days" :key="dayIdx" class="day-block">
         <view class="day-title">第{{ dayIdx + 1 }}天：</view>
-        <view v-for="(point, idx) in day.points" :key="idx" class="point-block">
-          <view class="point-name">{{ point.name }}</view>
-          <view class="time-row">
-            <text>{{ point.time }}</text>
-          </view>
-          <view class="img-row">
-            <image :src="point.image" class="point-img" />
-            <button class="img-btn" @click="onChangeImage(dayIdx, idx)">
-              更换
-            </button>
-            <button class="del-btn" @click="onDeletePoint(dayIdx, idx)">
-              ×
-            </button>
-          </view>
+        <view class="point-names-row">
+          <text
+            v-for="(point, idx) in day.points"
+            :key="idx"
+            class="point-name-row-item"
+          >
+            {{ point.name
+            }}<span v-if="idx !== day.points.length - 1"> / </span>
+          </text>
         </view>
+        <view class="divider"></view>
+        <!-- 横向时间轴（节点在一条横线上，节点下方展示内容） -->
+        <scroll-view scroll-x class="timeline-horizontal">
+          <view class="timeline-h-row">
+            <view
+              v-for="(point, idx) in day.points"
+              :key="idx"
+              class="timeline-h-node"
+            >
+              <view class="timeline-h-time">{{ point.time }}</view>
+              <view class="timeline-h-dot"></view>
+              <view
+                class="timeline-h-line"
+                v-if="idx !== day.points.length - 1"
+              ></view>
+              <image :src="point.image" class="timeline-h-img" />
+              <button
+                class="timeline-h-btn"
+                @click="onChangeImage(dayIdx, idx)"
+              >
+                更换 ✎
+              </button>
+              <button
+                class="timeline-h-del"
+                @click="onDeletePoint(dayIdx, idx)"
+              >
+                ×
+              </button>
+            </view>
+          </view>
+        </scroll-view>
         <button class="add-btn" @click="onAddPoint(dayIdx)">+ 添加地点</button>
       </view>
     </view>
@@ -216,39 +242,93 @@ export default {
   font-weight: bold;
   margin-bottom: 8px;
 }
-.point-block {
-  margin-bottom: 12px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 8px;
-}
-.point-name {
-  font-size: 15px;
-  margin-bottom: 4px;
-}
-.time-row {
-  color: #666;
-  margin-bottom: 4px;
-}
-.img-row {
+.point-names-row {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #444;
   margin-bottom: 4px;
 }
-.point-img {
-  width: 60px;
-  height: 60px;
+.point-name-row-item {
+  margin-right: 2px;
+}
+.divider {
+  height: 2px;
+  background: #673ab7;
+  opacity: 0.2;
+  margin-bottom: 8px;
+}
+.timeline-horizontal {
+  overflow-x: auto;
+  padding: 24px 0 16px 0;
+  white-space: nowrap;
+}
+.timeline-h-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.timeline-h-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+  margin-right: 40px;
+  position: relative;
+}
+.timeline-h-time {
+  font-size: 15px;
+  font-weight: bold;
+  color: #222;
+  margin-bottom: 4px;
+}
+.timeline-h-dot {
+  width: 14px;
+  height: 14px;
+  background: #673ab7;
+  border-radius: 50%;
+  margin-bottom: 8px;
+  z-index: 2;
+}
+.timeline-h-line {
+  position: absolute;
+  top: 20px;
+  left: 100%;
+  width: 40px;
+  height: 2px;
+  background: #b39ddb;
+  z-index: 1;
+}
+.timeline-h-img {
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
-  margin-right: 8px;
+  object-fit: cover;
+  margin-bottom: 4px;
 }
-.img-btn {
+.timeline-h-btn {
   font-size: 12px;
-  margin-right: 8px;
-}
-.del-btn {
-  font-size: 16px;
-  color: #d0021b;
-  background: none;
+  color: #222;
+  background: #f5f5f5;
   border: none;
+  border-radius: 6px;
+  padding: 2px 10px;
+  margin-bottom: 2px;
+}
+.timeline-h-del {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #fff;
+  color: #d0021b;
+  border: 1px solid #eee;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 18px;
+  padding: 0;
+  z-index: 2;
 }
 .add-btn {
   font-size: 13px;
