@@ -274,7 +274,10 @@ export default {
       uni.navigateBack();
     },
     goEditRoute() {
-      uni.navigateTo({ url: "/pages/editRoute/editRoute" });
+      const itineraryStr = encodeURIComponent(JSON.stringify(this.itinerary));
+      uni.navigateTo({
+        url: `/pages/editRoute/editRoute?itinerary=${itineraryStr}`,
+      });
     },
     getBudgetChartDasharray(idx, chart) {
       const C = 2 * Math.PI * 50;

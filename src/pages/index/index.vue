@@ -128,7 +128,7 @@
       </view>
 
       <!-- 对话背景 -->
-      <view class="chat-background" v-else>
+      <view class="chat-background" v-if="!showWelcome">
         <view class="chat-container">
           <!-- 添加对话标题 -->
           <view class="chat-title" v-if="currentChatTitle">
@@ -315,7 +315,7 @@
                 background: #fcf6e8;
                 border-radius: 16px;
                 box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
-                padding: 18px 18px 10px 18px;
+                padding: 18px;
                 margin-bottom: 18px;
               "
             >
@@ -326,63 +326,47 @@
                   color: #2c4a52;
                   margin-bottom: 10px;
                 "
-                >预算面板</view
+                >预算分配</view
               >
               <view
-                v-for="(label, key) in {
-                  住宿: '住宿',
-                  餐饮: '餐饮',
-                  娱乐: '娱乐',
-                }"
-                :key="key"
-                style="margin-bottom: 32px"
+                v-for="item in budgetJigsawData.chart"
+                :key="item.name"
+                style="margin-bottom: 12px"
               >
-                <view
-                  style="display: flex; align-items: center; margin-bottom: 2px"
-                >
-                  <view style="width: 40px; color: #2c4a52; font-size: 14px">{{
-                    label
+                <view style="display: flex; align-items: center">
+                  <view style="width: 60px; color: #2c4a52; font-size: 14px">{{
+                    item.name
                   }}</view>
-                  <view style="flex: 1; margin: 0 8px; position: relative">
-                    <input
-                      type="number"
-                      v-model.number="budgetJigsawData[key]"
-                      style="
-                        width: 100%;
-                        height: 40px;
-                        border: 1px solid #ddd;
-                        border-radius: 8px;
-                        padding: 0 12px;
-                        font-size: 14px;
-                        color: #2c4a52;
-                        background: #fff;
-                      "
-                      placeholder="请输入预算"
-                      min="0"
-                      max="10000"
-                    />
-                  </view>
+                  <input
+                    type="number"
+                    v-model.number="budgetJigsawData[item.name]"
+                    style="
+                      flex: 1;
+                      margin: 0 8px;
+                      border: 1px solid #ddd;
+                      border-radius: 8px;
+                      padding: 0 12px;
+                      font-size: 14px;
+                      color: #2c4a52;
+                      background: #fff;
+                      height: 36px;
+                    "
+                    min="0"
+                    max="10000"
+                  />
+                  <view style="color: #888; font-size: 13px">元</view>
                 </view>
               </view>
-            </view>
-            <view
-              style="
-                background: #fcf6e8;
-                border-radius: 16px;
-                box-shadow: 0 2px 8px rgba(60, 89, 107, 0.08);
-                padding: 18px;
-              "
-            >
-              <view
-                style="
-                  font-weight: bold;
-                  font-size: 15px;
-                  color: #2c4a52;
-                  margin-bottom: 10px;
-                "
-                >预计资金花费</view
-              >
-              <view style="display: flex; align-items: center">
+              <view style="margin-top: 18px">
+                <view
+                  style="
+                    font-weight: bold;
+                    font-size: 15px;
+                    color: #2c4a52;
+                    margin-bottom: 10px;
+                  "
+                  >预算分布图</view
+                >
                 <svg width="120" height="120" viewBox="0 0 120 120">
                   <circle
                     v-for="(item, idx) in budgetJigsawData.chart"
@@ -427,7 +411,7 @@
             </view>
           </template>
           <template v-else>
-            <!-- 行程预览（现有itinerary部分） -->
+            <!-- 行程预览（纵向timeline） -->
             <view class="timeline">
               <view v-for="(day, dayIdx) in itinerary" :key="day.date">
                 <view class="timeline-day">
@@ -443,15 +427,14 @@
                     :key="eventIdx"
                   >
                     <view class="event-time">
-                      <view
-                        class="time-main"
-                        v-html="formatTime(event.time).main"
-                      ></view>
+                      <view class="time-main">{{
+                        formatTime(event.time).main
+                      }}</view>
                       <view
                         class="time-range"
                         v-if="formatTime(event.time).range"
-                        v-html="formatTime(event.time).range"
-                      ></view>
+                        >{{ formatTime(event.time).range }}</view
+                      >
                       <text class="time-sub" v-if="event.subtext">{{
                         event.subtext
                       }}</text>
@@ -472,7 +455,7 @@
                           class="event-image"
                           :lazy-load="true"
                           @error="event.image = '/static/images/default.jpg'"
-                        ></image>
+                        />
                         <view class="location-overlay">{{
                           event.location
                         }}</view>
